@@ -846,7 +846,8 @@ async def update_drive_file(
     remove_parents: Optional[str] = None,  # Comma-separated folder IDs to remove
     # File status
     starred: Optional[bool] = None,
-    trashed: Optional[bool] = None,
+    # CW-MODIFIED: trashed parameter removed — trashing files is a destructive operation
+    # that could be exploited via prompt injection to delete important documents.
     # Sharing and permissions
     writers_can_share: Optional[bool] = None,
     copy_requires_writer_permission: Optional[bool] = None,
@@ -865,7 +866,6 @@ async def update_drive_file(
         add_parents (Optional[str]): Comma-separated folder IDs to add as parents.
         remove_parents (Optional[str]): Comma-separated folder IDs to remove from parents.
         starred (Optional[bool]): Whether to star/unstar the file.
-        trashed (Optional[bool]): Whether to move file to/from trash.
         writers_can_share (Optional[bool]): Whether editors can share the file.
         copy_requires_writer_permission (Optional[bool]): Whether copying requires writer permission.
         properties (Optional[dict]): Custom key-value properties for the file.
@@ -896,8 +896,6 @@ async def update_drive_file(
         update_body["mimeType"] = mime_type
     if starred is not None:
         update_body["starred"] = starred
-    if trashed is not None:
-        update_body["trashed"] = trashed
     if writers_can_share is not None:
         update_body["writersCanShare"] = writers_can_share
     if copy_requires_writer_permission is not None:
@@ -972,10 +970,6 @@ async def update_drive_file(
     if starred is not None and starred != current_starred:
         star_status = "starred" if starred else "unstarred"
         changes.append(f"   • File {star_status}")
-    current_trashed = current_file.get("trashed")
-    if trashed is not None and trashed != current_trashed:
-        trash_status = "moved to trash" if trashed else "restored from trash"
-        changes.append(f"   • File {trash_status}")
     current_writers_can_share = current_file.get("writersCanShare")
     if writers_can_share is not None and writers_can_share != current_writers_can_share:
         share_status = "can" if writers_can_share else "cannot"

@@ -1460,7 +1460,6 @@ async def modify_gmail_message_labels(
     """
     Adds or removes labels from a Gmail message.
     To archive an email, remove the INBOX label.
-    To delete an email, add the TRASH label.
 
     Args:
         user_google_email (str): The user's Google email address. Required.
@@ -1474,6 +1473,16 @@ async def modify_gmail_message_labels(
     logger.info(
         f"[modify_gmail_message_labels] Invoked. Email: '{user_google_email}', Message ID: '{message_id}'"
     )
+
+    # CW-MODIFIED: Block TRASH and SPAM labels — trashing/spamming messages is destructive
+    # and could be exploited via prompt injection to delete important emails.
+    blocked_labels = {"TRASH", "SPAM"}
+    for label in add_label_ids:
+        if label.upper() in blocked_labels:
+            raise Exception(
+                f"Adding the {label} label is not allowed. "
+                "Trashing and marking messages as spam are blocked for security."
+            )
 
     if not add_label_ids and not remove_label_ids:
         raise Exception(
@@ -1528,6 +1537,16 @@ async def batch_modify_gmail_message_labels(
     logger.info(
         f"[batch_modify_gmail_message_labels] Invoked. Email: '{user_google_email}', Message IDs: '{message_ids}'"
     )
+
+    # CW-MODIFIED: Block TRASH and SPAM labels — trashing/spamming messages is destructive
+    # and could be exploited via prompt injection to delete important emails.
+    blocked_labels = {"TRASH", "SPAM"}
+    for label in add_label_ids:
+        if label.upper() in blocked_labels:
+            raise Exception(
+                f"Adding the {label} label is not allowed. "
+                "Trashing and marking messages as spam are blocked for security."
+            )
 
     if not add_label_ids and not remove_label_ids:
         raise Exception(
