@@ -168,11 +168,17 @@ https://www.googleapis.com/auth/calendar.events
 
 ## Token Storage
 
-By default, this server stores OAuth tokens in **macOS Keychain** for persistent, secure storage:
+By default, this server stores OAuth tokens in the **platform's native credential manager** via the `keyring` library:
 
-- Tokens are stored in the system Keychain, protected by macOS security
-- Users authenticate once and remain authenticated across sessions
-- No plaintext JSON files are created
+- **macOS**: Keychain (protected by system password / biometrics)
+- **Windows**: Credential Manager (protected by DPAPI, tied to user login)
+- **Linux**: SecretService (GNOME Keyring / KDE KWallet)
+
+The keyring backend is **validated at startup** against an allowlist of trusted backends. If an untrusted backend is detected (e.g. plaintext storage from `keyrings.alt`), the server refuses to start. This prevents silent fallback to insecure storage.
+
+Users authenticate once and remain authenticated across sessions. No plaintext JSON files are created.
+
+**Linux security note:** SecretService stores secrets in a user-session keyring that any process running as the same user can read. This is weaker than macOS Keychain (which can prompt for a password). On shared Linux systems, consider stateless mode instead.
 
 **Optional stateless mode:** Set `WORKSPACE_MCP_STATELESS_MODE=true` and `MCP_ENABLE_OAUTH21=true` to store tokens in memory only:
 
@@ -180,7 +186,7 @@ By default, this server stores OAuth tokens in **macOS Keychain** for persistent
 - Users must re-authenticate when the server restarts
 - Eliminates persistent credential storage entirely
 
-**Security trade-off:** macOS Keychain provides good protection (requires system password to access), but stateless mode eliminates the credential storage attack surface entirely at the cost of more frequent re-authentication.
+**Security trade-off:** Native credential managers provide good protection for most use cases, but stateless mode eliminates the credential storage attack surface entirely at the cost of more frequent re-authentication.
 
 ## Kill Switch
 
