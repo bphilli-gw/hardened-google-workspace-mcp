@@ -19,11 +19,13 @@ Enables Claude Code to interact with your Google Workspace:
 
 LLMs are vulnerable to prompt injection attacks—malicious instructions hidden in content the model processes. An attacker could embed instructions in an email or document that trick the AI into exfiltrating sensitive data.
 
-This fork removes all tools that could send data outside your account:
+This fork removes dangerous operations — both exfiltration vectors and destructive actions:
 - **No email sending** - Claude can draft emails, but you must manually send them from Gmail
 - **No file sharing** - Claude cannot share files with external users
 - **No filter creation** - Claude cannot create auto-forwarding rules
 - **No event attendees** - Claude cannot add attendees to calendar events (invitations could exfiltrate data)
+- **No file trashing** - Claude cannot move Drive files to trash
+- **No email trashing** - Claude cannot trash or spam-label emails
 - **Secure credential storage** - OAuth tokens stored in your platform's native credential manager (macOS Keychain, Windows Credential Manager, or Linux SecretService/KWallet), not plaintext files
 
 ### ⚠️ This Reduces Risk, It Does NOT Eliminate It
