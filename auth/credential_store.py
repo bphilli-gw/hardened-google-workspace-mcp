@@ -2,16 +2,19 @@
 Credential Store API for Google Workspace MCP
 
 This module provides a standardized interface for credential storage and retrieval.
-Credentials are stored in the platform's native credential manager (macOS Keychain,
-Windows Credential Manager, or Linux SecretService/KWallet) via the keyring library.
-
-The keyring backend is validated at startup against an allowlist of trusted backends
-to prevent silent fallback to plaintext storage.
+On macOS/Linux, credentials are stored in the platform's native credential manager
+(macOS Keychain, Linux SecretService/KWallet) via the keyring library, with backend
+validation to prevent silent fallback to plaintext storage.
+On Windows, credentials are stored as local JSON files by default, because Windows
+Credential Manager has a blob-size limit that rejects the large OAuth token payloads
+used by this MCP (CredWrite error 1783). Set GOOGLE_MCP_CREDENTIAL_STORE_TYPE=file
+to force file-based storage on any platform.
 """
 
 import json
 import logging
 import os
+import platform
 from abc import ABC, abstractmethod
 from typing import Optional, List
 from datetime import datetime
@@ -430,18 +433,29 @@ def get_credential_store() -> CredentialStore:
 
     CW-MODIFIED: Uses keyring with backend validation for secure cross-platform
     credential storage. Rejects untrusted backends to prevent plaintext fallback.
+    GW-MODIFIED: Windows defaults to file-based storage because Windows Credential
+    Manager's CredWrite API has a blob-size limit that rejects the large OAuth
+    token payloads (22 scope URLs). GOOGLE_MCP_CREDENTIAL_STORE_TYPE env var
+    can override the store type on any platform.
 
     Returns:
         Configured credential store instance
-
-    Raises:
-        RuntimeError: If the keyring backend is not trusted
     """
     global _credential_store
 
     if _credential_store is None:
-        _validate_keyring_backend()
-        _credential_store = KeyringCredentialStore()
+        store_type = os.getenv("GOOGLE_MCP_CREDENTIAL_STORE_TYPE", "").lower()
+
+        if store_type == "file":
+            _credential_store = LocalDirectoryCredentialStore()
+        elif platform.system() == "Windows":
+            # Windows Credential Manager's CredWrite API has a blob-size limit
+            # that rejects the large OAuth token payload. Default to file storage.
+            _credential_store = LocalDirectoryCredentialStore()
+        else:
+            # macOS/Linux: use keyring with backend validation
+            _validate_keyring_backend()
+            _credential_store = KeyringCredentialStore()
         logger.info(f"Initialized credential store: {type(_credential_store).__name__}")
 
     return _credential_store
